@@ -1,6 +1,6 @@
 {
-  "name": "com.inspyrstudio.cygonframework.unity",
-  "displayName": "Unity Cygon Framework",
+  "name": "com.inspyrstudio.cygonlink",
+  "displayName": "Cygon Link",
   "license": "MIT",
   "author": {
     "name": "Inspyr Studio",
@@ -20,11 +20,12 @@
     "hot reload"
   ],
   "documentationUrl": "https://inspyrstudio.com/",
-  "changelogUrl": "https://github.com/inspyrstudio/UnityCygonFramework/releases",
+  "changelogUrl": "https://github.com/inspyrstudio/CygonLink/releases",
   "repository": {
-    "url": "git@github.com:inspyrstudio/UnityCygonFramework.git",
+    "url": "git@github.com:inspyrstudio/CygonLink.git",
     "type": "git",
     "revision": "f9335c44bc8104d2271e2a5c17c1829670fd7ca6"
   },
   "_fingerprint": "9d4f502419973d60d31561f4d2c7f9e4c4442ff2"
 }
+
