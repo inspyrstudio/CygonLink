@@ -24,7 +24,7 @@ public class RuntimeSync_USDA
         
         EditorApplication.playModeStateChanged += OnPlayModeStateChanged;
 
-        Debug.Log("<color=white><b>[Cygon (UCF)]</b> Waiting for changes in sources files</color>");
+        Debug.Log("<color=white><b>Cygon (UCF)</b> Waiting for changes in sources files</color>");
     }
     
     private static void OnPlayModeStateChanged(PlayModeStateChange state)
@@ -45,7 +45,7 @@ public class RuntimeSync_USDA
     [MenuItem("Tools/Cygon (UCF)/Force Refresh %&r", false, 10)]
     public static void ManualRefreshAll()
     {
-        Debug.Log("<color=blue><b>[Cygon (UCF)]</b> Manual Refresh Triggered...</color>");
+        Debug.Log("<b>Cygon (UCF)</b> <color=orange>Manual Refresh Triggered...</color>");
         RefreshAll();
     }
     private static void RefreshAll()
@@ -79,11 +79,11 @@ public class RuntimeSync_USDA
         var assetEntry = AssetDatabase.LoadMainAssetAtPath(assetPath);
         if (assetEntry == null)
         {
-            Debug.LogWarning($"<color=red><b>[Cygon (UCF)]</b> File detected but Unity can't find it at: {assetPath}</color>");
+            Debug.LogWarning($"<b>Cygon (UCF)</b> <color=red>File detected but Unity can't find it at: {assetPath}</color>");
             return;
         }
 
-        Debug.Log($"<color=blue><b>[Cygon (UCF)]</b> Refreshing scene...:</color> {assetPath}");
+        Debug.Log($"<b>Cygon (UCF)</b> <color=orange>Refreshing scene...:</color> {assetPath}");
 
         // 1. Force the import
         AssetDatabase.ImportAsset(assetPath, ImportAssetOptions.ForceUpdate);
@@ -112,7 +112,7 @@ public class RuntimeSync_USDA
     private static void UpdateInstance(GameObject instance, GameObject sourceAsset)
     {
         // Record for Undo system
-        Undo.RegisterCompleteObjectUndo(instance, "[Cygon (UCF)] RuntimeSync Update");
+        Undo.RegisterCompleteObjectUndo(instance, "Cygon (UCF) RuntimeSync Update");
 
         // Clear children
         List<GameObject> children = new List<GameObject>();
@@ -133,6 +133,6 @@ public class RuntimeSync_USDA
             PrefabUtility.RevertPrefabInstance(instance, InteractionMode.AutomatedAction);
         }
 
-        Debug.Log($"<color=green><b>[Cygon (UCF)]</b> Refreshed instance {instance.name}</color>");
+        Debug.Log($"<b>Cygon (UCF)</b> <color=green>Refreshed instance {instance.name}</color>");
     }
 }
