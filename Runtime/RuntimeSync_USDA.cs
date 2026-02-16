@@ -7,7 +7,6 @@ using System.Collections.Generic;
 public class RuntimeSync_USDA
 {
     private static FileSystemWatcher projectWatcher;
-    private static EditorRuntime_USDA editorRuntime;
     static RuntimeSync_USDA()
     {
         // Initialize watcher for the Assets folder
@@ -24,8 +23,7 @@ public class RuntimeSync_USDA
         
         EditorApplication.playModeStateChanged += OnPlayModeStateChanged;
 
-        EditorRuntime_USDA.send
-        Debug.Log("<b>Cygon (UCF)</b> <color=white>Waiting for changes in sources files</color>");
+        EditorRuntime_USDA.SendLog("white", "Waiting for changes in sources files");
     }
     
     private static void OnPlayModeStateChanged(PlayModeStateChange state)
@@ -46,7 +44,7 @@ public class RuntimeSync_USDA
     [MenuItem("Tools/Cygon (UCF)/Force Refresh %&r", false, 10)]
     public static void ManualRefreshAll()
     {
-        Debug.Log("<b>Cygon (UCF)</b> <color=orange>Manual Refresh Triggered...</color>");
+        EditorRuntime_USDA.SendLog("orange", "Manual Refresh Triggered...");
         RefreshAll();
     }
     private static void RefreshAll()
@@ -57,7 +55,7 @@ public class RuntimeSync_USDA
 
         if (files.Length == 0)
         {
-            Debug.Log("<b>Cygon (UCF)</b> <color=yellow>No .usda files found to refresh.</color>");
+            EditorRuntime_USDA.SendLog("yellow", "Nothing related to .usda files found to refresh.");
             return;
         }
 
@@ -66,7 +64,7 @@ public class RuntimeSync_USDA
             RefreshSceneInstances(fullPath);
         }
 
-        Debug.Log($"<b>Cygon (UCF)</b> <color=green>Forced refresh complete. Processed {files.Length} files.</color>");
+        EditorRuntime_USDA.SendLog("green", $"Forced refresh complete. Processed {files.Length} files.");
     }
 
     private static void RefreshSceneInstances(string fullPath)
@@ -90,11 +88,11 @@ public class RuntimeSync_USDA
         var assetEntry = AssetDatabase.LoadMainAssetAtPath(assetPath);
         if (assetEntry == null)
         {
-            Debug.Log($"<b>Cygon (UCF)</b> <color=red>File detected but Unity can't find it at: {assetPath}</color>");
+            EditorRuntime_USDA.SendLog("red", $"File detected but Unity can't find it at: {assetPath}.");
             return;
         }
 
-        Debug.Log($"<b>Cygon (UCF)</b> <color=orange>Trying to refresh :</color> {assetPath}...");
+        EditorRuntime_USDA.SendLog("orange", $"Trying to refresh : {assetPath}...");
 
         // 1. Force the import
         AssetDatabase.ImportAsset(assetPath, ImportAssetOptions.ForceUpdate);
@@ -123,7 +121,7 @@ public class RuntimeSync_USDA
     private static void UpdateInstance(GameObject instance, GameObject sourceAsset)
     {
         // Record for Undo system
-        Undo.RegisterCompleteObjectUndo(instance, "Cygon (UCF) RuntimeSync Update");
+        Undo.RegisterCompleteObjectUndo(instance, $"{EditorRuntime_USDA.logPrefix} RuntimeSync Update");
 
         // Clear children
         List<GameObject> children = new List<GameObject>();
@@ -144,6 +142,6 @@ public class RuntimeSync_USDA
             PrefabUtility.RevertPrefabInstance(instance, InteractionMode.AutomatedAction);
         }
 
-        Debug.Log($"<b>Cygon (UCF)</b> <color=green>Refreshed instance {instance.name}</color>");
+        EditorRuntime_USDA.SendLog("green", $"Refreshed instance {instance.name}.");
     }
 }

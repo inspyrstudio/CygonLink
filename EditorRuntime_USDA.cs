@@ -1,11 +1,11 @@
 using UnityEngine;
 
-public class EditorRuntime_USDA
+public static class EditorRuntime_USDA
 {
-    private string logPrefix = "Cygon Link";
+    public static string logPrefix = "Cygon Link";
 
-    public void SendLog(string color,  string message)
+    public static void SendLog(string color,  string message)
     {
-        Debug.Log($"<b>{logPrefix}</b> <color={color}>{message}</color>");
+        Debug.Log($"<b>{logPrefix}</b>: <color={color}>{message}</color>");
     }
 }

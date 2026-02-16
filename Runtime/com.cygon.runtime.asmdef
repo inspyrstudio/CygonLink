@@ -1,3 +1,17 @@
 {
-	"name": "com.cygon.runtime"
+    "name": "com.cygon.runtime",
+    "rootNamespace": "",
+    "references": [
+        "GUID:1cd0ff7c767a10b4b9cb31f08ca3ecd3",
+        "com.cygon.misc"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
 }
