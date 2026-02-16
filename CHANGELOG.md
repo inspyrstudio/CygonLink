@@ -31,3 +31,13 @@ All notable changes to this project will be documented in this file.
 ### Fixed ###
 
 - `RefreshAll` method was not refreshing correctly with the shortcut
+
+## [0.1.2-preview] - 2024-05-20
+
+### Added ###
+
+- EditorRuntime_USDA, a static class with information for custom logs.
+
+### Fixed ###
+
+- `Cygon Link` name was not the same everywhere.
