@@ -10,7 +10,7 @@
   "version": "0.1.1-preview",
   "type": "Tool",
   "unity": "6000.0",
-  "description": "Complete Cygon to Unity framework allowing for hot reload and fast imports between both software. Keep in mind this is an early version and is subject to significant changes as we refine the workflow.",
+  "description": "Complete Cygon to Unity link / bridge allowing for hot reload and fast imports between both software. Keep in mind this is an early version and is subject to significant changes as we refine the workflow.",
   "keywords": [
     "Cygon",
     "Inspyr Studio",
@@ -28,4 +28,5 @@
   },
   "_fingerprint": "9d4f502419973d60d31561f4d2c7f9e4c4442ff2"
 }
+
 
