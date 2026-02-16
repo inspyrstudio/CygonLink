@@ -16,3 +16,18 @@ All notable changes to this project will be documented in this file.
 ### Fixed
 
 - Textures and materials are now created in the correct sub-folders upon import.
+
+## [0.1.1-preview] - 2024-05-20
+
+### Added ###
+
+- Better logs with color and informations display.
+- Tool for manual refresh in _[Tools/Cygon (UCF)/Force Refresh]_, available with `CTRL + ALT + R`
+
+### Changed ###
+
+- Renamed scripts and assemblies definitions
+
+### Fixed ###
+
+- `RefreshAll` method was not refreshing correctly with the shortcut
