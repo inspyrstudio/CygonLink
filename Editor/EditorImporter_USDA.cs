@@ -231,11 +231,12 @@ public class EditorImporter_USDA : ScriptedImporter
             mat.SetFloat("_OcclusionStrength", 0.0f);
 
             AssetDatabase.CreateAsset(mat, materialPath);
-            AssetDatabase.SaveAssets();
         }
 
         // CRITICAL: Tell Unity that this USDA import depends on the external material file.
         // This fixes the "Purple/Invisible" issue on first import.
+        
+        AssetDatabase.SaveAssets();
         ctx.DependsOnSourceAsset(materialPath);
 
         renderer.sharedMaterial = mat;

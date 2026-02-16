@@ -41,3 +41,9 @@ All notable changes to this project will be documented in this file.
 ### Fixed ###
 
 - `Cygon Link` name was not the same everywhere.
+
+## [0.1.3-exp] - 2024-05-20
+
+### Fixed ###
+
+- Error on `AssetDatabase.Refresh()` or `AssetDatabase.SaveAssets()`.
