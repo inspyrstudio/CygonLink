@@ -10,7 +10,7 @@ using UnityEditor.AssetImporters;
 using UnityEngine.Rendering;
 
 [ScriptedImporter(1, "usda")]
-public class EditorImporter : ScriptedImporter
+public class EditorImporter_USDA : ScriptedImporter
 {
      //=============================================================================
     // VARIABLES

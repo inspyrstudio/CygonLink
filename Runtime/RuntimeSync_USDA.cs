@@ -4,11 +4,11 @@ using System.IO;
 using System.Collections.Generic;
 
 [InitializeOnLoad]
-public class RuntimeSync
+public class RuntimeSync_USDA
 {
     private static FileSystemWatcher projectWatcher;
 
-    static RuntimeSync()
+    static RuntimeSync_USDA()
     {
         // Initialize watcher for the Assets folder
         string assetsPath = Application.dataPath;
