@@ -24,7 +24,7 @@ public class RuntimeSync_USDA
         
         EditorApplication.playModeStateChanged += OnPlayModeStateChanged;
 
-        Debug.Log("<color=cyan>USDA Global Reloader Active.</color> Watching for changes...");
+        Debug.Log("<color=white><b>[Cygon (UCF)]</b> Waiting for changes in sources files</color>");
     }
     
     private static void OnPlayModeStateChanged(PlayModeStateChange state)
@@ -41,12 +41,11 @@ public class RuntimeSync_USDA
             RefreshSceneInstances(e.FullPath);
         };
     }
-
-    // --- NEW: TOOLBAR / MENU ITEM ---
-    [MenuItem("Tools/UnityCygonFramework/Force Refresh All Instances", false, 10)]
+    
+    [MenuItem("Tools/Cygon (UCF)/Force Refresh %&r", false, 10)]
     public static void ManualRefreshAll()
     {
-        Debug.Log("<color=orange><b>[Cygon]</b> Manual Refresh Triggered...</color>");
+        Debug.Log("<color=blue><b>[Cygon (UCF)]</b> Manual Refresh Triggered...</color>");
         RefreshAll();
     }
     private static void RefreshAll()
@@ -80,11 +79,11 @@ public class RuntimeSync_USDA
         var assetEntry = AssetDatabase.LoadMainAssetAtPath(assetPath);
         if (assetEntry == null)
         {
-            Debug.LogWarning($"[USDA Reloader] File detected but Unity can't find it at: {assetPath}");
+            Debug.LogWarning($"<color=red><b>[Cygon (UCF)]</b> File detected but Unity can't find it at: {assetPath}</color>");
             return;
         }
 
-        Debug.Log($"<color=orange>Refreshing USDA:</color> {assetPath}");
+        Debug.Log($"<color=blue><b>[Cygon (UCF)]</b> Refreshing scene...:</color> {assetPath}");
 
         // 1. Force the import
         AssetDatabase.ImportAsset(assetPath, ImportAssetOptions.ForceUpdate);
@@ -113,7 +112,7 @@ public class RuntimeSync_USDA
     private static void UpdateInstance(GameObject instance, GameObject sourceAsset)
     {
         // Record for Undo system
-        Undo.RegisterCompleteObjectUndo(instance, "USDA Auto-Reload");
+        Undo.RegisterCompleteObjectUndo(instance, "[Cygon (UCF)] RuntimeSync Update");
 
         // Clear children
         List<GameObject> children = new List<GameObject>();
@@ -134,6 +133,6 @@ public class RuntimeSync_USDA
             PrefabUtility.RevertPrefabInstance(instance, InteractionMode.AutomatedAction);
         }
 
-        Debug.Log($"Updated scene instance: {instance.name}");
+        Debug.Log($"<color=green><b>[Cygon (UCF)]</b> Refreshed instance {instance.name}</color>");
     }
 }
