@@ -4,11 +4,11 @@ using System.IO;
 using System.Collections.Generic;
 
 [InitializeOnLoad]
-public class ScpRuntimeReloader
+public class RuntimeSync
 {
     private static FileSystemWatcher projectWatcher;
 
-    static ScpRuntimeReloader()
+    static RuntimeSync()
     {
         // Initialize watcher for the Assets folder
         string assetsPath = Application.dataPath;
@@ -42,6 +42,13 @@ public class ScpRuntimeReloader
         };
     }
 
+    // --- NEW: TOOLBAR / MENU ITEM ---
+    [MenuItem("Tools/UnityCygonFramework/Force Refresh All Instances", false, 10)]
+    public static void ManualRefreshAll()
+    {
+        Debug.Log("<color=orange><b>[Cygon]</b> Manual Refresh Triggered...</color>");
+        RefreshAll();
+    }
     private static void RefreshAll()
     {
         string[] guids = AssetDatabase.FindAssets("t:DefaultAsset");

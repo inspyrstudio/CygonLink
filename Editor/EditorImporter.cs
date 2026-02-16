@@ -10,7 +10,7 @@ using UnityEditor.AssetImporters;
 using UnityEngine.Rendering;
 
 [ScriptedImporter(1, "usda")]
-public class ScpEditorImporter : ScriptedImporter
+public class EditorImporter : ScriptedImporter
 {
      //=============================================================================
     // VARIABLES
