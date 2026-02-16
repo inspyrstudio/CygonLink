@@ -54,7 +54,11 @@ public class RuntimeSync_USDA
         foreach (string guid in guids)
         {
             string path = AssetDatabase.GUIDToAssetPath(guid);
-            if (path.ToLower().EndsWith(".usda")) RefreshSceneInstances(Path.GetFullPath(path));
+            if (path.ToLower().EndsWith(".usda"))
+            {
+                RefreshSceneInstances(Path.GetFullPath(path)); 
+                Debug.Log("<b>Cygon (UCF)</b> <color=green>Forced refresh is complete</color>");
+            }
         }
     }
 
@@ -83,7 +87,7 @@ public class RuntimeSync_USDA
             return;
         }
 
-        Debug.Log($"<b>Cygon (UCF)</b> <color=orange>Refreshing scene...:</color> {assetPath}");
+        Debug.Log($"<b>Cygon (UCF)</b> <color=orange>Trying to refresh :</color> {assetPath}...");
 
         // 1. Force the import
         AssetDatabase.ImportAsset(assetPath, ImportAssetOptions.ForceUpdate);
