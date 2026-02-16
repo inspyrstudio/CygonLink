@@ -24,7 +24,7 @@ public class RuntimeSync_USDA
         
         EditorApplication.playModeStateChanged += OnPlayModeStateChanged;
 
-        Debug.Log("<color=white><b>Cygon (UCF)</b> Waiting for changes in sources files</color>");
+        Debug.Log("<b>Cygon (UCF)</b> <color=white>Waiting for changes in sources files</color>");
     }
     
     private static void OnPlayModeStateChanged(PlayModeStateChange state)
@@ -79,7 +79,7 @@ public class RuntimeSync_USDA
         var assetEntry = AssetDatabase.LoadMainAssetAtPath(assetPath);
         if (assetEntry == null)
         {
-            Debug.LogWarning($"<b>Cygon (UCF)</b> <color=red>File detected but Unity can't find it at: {assetPath}</color>");
+            Debug.Log($"<b>Cygon (UCF)</b> <color=red>File detected but Unity can't find it at: {assetPath}</color>");
             return;
         }
 
