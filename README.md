@@ -4,7 +4,7 @@
 
 Seamless integration and live-sync for USDA files.
 
-The Cygon Link is a powerful bridge that provides a robust pipeline for bringing USDA (Universal Scene Description) assets into Unity. It features a custom Scripted Importer for automated conversion and a Live Reloader that syncs changes from Cygon to Unity in real-time.
+Cygon Link is a powerful bridge that provides a robust pipeline for bringing USDA (Universal Scene Description) assets into Unity. It features a custom Scripted Importer for automated conversion and a Live Reloader that syncs changes from Cygon to Unity in real-time.
 
 
 ## Key Features
@@ -52,4 +52,5 @@ The Cygon Link is a powerful bridge that provides a robust pipeline for bringing
 *🤝 Contributing*  
 
 Contributions are welcome! Please feel free to submit a Pull Request or open an issue on the GitHub Repository.
+
 
