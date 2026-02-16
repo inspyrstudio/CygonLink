@@ -1,30 +1,53 @@
 
-## SCP USDA Importer & Reloader for Unity ##
-A custom Unity toolset designed for seamless integration and live-synchronization of USDA (Universal Scene Description) files exported from Cygon.
 
-[](https://github.com/inspyrstudio/CygonUnityImporter/blob/main/README.md#scp-usda-importer--reloader-for-unity-a-custom-unity-toolset-designed-for-seamless-integration-and-live-synchronization-of-usda-universal-scene-description-files-exported-from-cygon)
+# Unity Cygon Framework
 
-**1. Overview**  This package provides a robust pipeline for bringing  `USDA`  assets into Unity. It includes a custom  `Scripted Importer`  to handle the conversion of  `USD`  data into Unity Prefabs and a Live Reloader to ensure your scene updates instantly when the source file changes.
+Seamless integration and live-sync for USDA files.
 
-_Core Features Automated_  `Prefab`  Generation: Converts  `USDA`  hierarchies,  `meshes`, and  `materials`  directly into Unity-native  `GameObjects`.
+The Cygon Unity Importer provides a robust pipeline for bringing USDA (Universal Scene Description) assets into Unity. It features a custom Scripted Importer for automated conversion and a Live Reloader that syncs changes from Cygon to Unity in real-time.
 
-_Live Hot-Reloading_: Detects file saves in  _**Cygon**_  and automatically updates all instances in your active Unity scene.
 
-_Intelligent Mesh Processing_: Includes a custom "`Weld Vertices`" pass and normal-correction logic to prevent dark artifacts and shadow leaks on corners.
+## Key Features
 
-_Material Library_: Automatically generates and manages physical materials in a local /materials folder, supporting  `Standard`,  `URP`, and  `HDRP`  shaders.
 
-**2. Usage Guide**  
-*The first time* you want to import you cygon file, simply drag a  `.usda`  file and its associated textures and models folders into your Unity Project window.
+*📦 Automated Prefab Generation* : Converts USDA hierarchies, meshes, and materials directly into native Unity GameObjects.
 
-*The importer* : will create a sub-folder named materials to store the generated .mat files.
+*🔥 Live Hot-Reloading* : Detects file saves in Cygon and instantly updates all instances in your active Unity scene (even in Play Mode).
 
-*Drag the imported*  `USDA`  asset from the Project window into your Scene.
+*🛠️ Intelligent Mesh Processing* : Includes a "Weld Vertices" pass and normal-correction logic to eliminate dark artifacts and shadow leaks.
 
-*Live Editing* Keep your Unity Scene open even in play mode.
+*🎨 Material Management* : Automatically generates physical materials in a local /Materials folder with support for URP and HDRP.
 
-*Open the source* file in  _**Cygon**_.
 
-*Modify* the geometry or transforms and Save.
+## Getting Started
 
-*Switch back to Unity*; the ScpLiveReloader will trigger an orange log message in the console, and your scene objects will update instantly.
+*Installation via Git URL*
+- Open the Unity Package Manager (Window > Package Manager).
+- Click the + button and select Add package from git URL...
+- Paste the following URL:  
+  https://github.com/inspyrstudio/CygonUnityImporter.git
+
+*📖 Usage Guide*
+1. Import your Assets  
+   Drag your .usda file along with its associated textures and models folders into the Unity Project window.  
+   Note: The importer will automatically create a /Materials sub-folder to store generated .mat files.
+
+2. Add to Scene  
+   Drag the imported USDA asset from the Project window into your Hierarchy or Scene View.
+
+3. Live Editing Workflow  
+   Keep your Unity Scene open (works in both Edit and Play Mode).  
+   Open the source file in Cygon.  
+   Modify geometry or transforms and Save.
+
+4. Switch back to Unity : *`TheLiveReloader`* will trigger an orange log in the console, and your objects will
+   update instantly.
+
+## Miscellaneous
+
+*⚙️ Requirements*
+- Unity Version: 6000.1.4f1 or higher.  `(Note, the package is not garanteed to work before 6000.1.4f1 but it's up to you if you want to test)`
+-  Render Pipeline: URP or HDRP recommended.
+
+*🤝 Contributing*  
+Contributions are welcome! Please feel free to submit a Pull Request or open an issue on the GitHub Repository.

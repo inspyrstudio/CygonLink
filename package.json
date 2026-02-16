@@ -1,24 +1,28 @@
 {
-  "name": "com.inspyrstudio.importer.unity",
-  "displayName": "Cygon Unity Importer",
+  "name": "com.inspyrstudio.cygonframework.unity",
+  "displayName": "Unity Cygon Framework",
+  "license": "MIT",
   "author": {
     "name": "Inspyr Studio",
     "email": "https://discord.gg/E5awVaqRdc",
     "url": "https://inspyrstudio.com"
   },
-  "version": "0.1.1",
+  "version": "0.1.0",
   "type": "Tool",
   "unity": "6000.0",
-  "description": "A custom Unity importer for USDA files exported from Cygon. Keep in mind this is an early version and is subject to significant changes as we refine the workflow.",
+  "description": "Complete Cygon to Unity framework allowing for hot reload and fast imports between both software. Keep in mind this is an early version and is subject to significant changes as we refine the workflow.",
   "keywords": [
     "Cygon",
-    "usda",
-    "importer"
+    "Inspyr Studio",
+    "USD",
+    "importer",
+    "framework",
+    "hot reload"
   ],
   "documentationUrl": "https://inspyrstudio.com/",
-  "changelogUrl": "https://github.com/inspyrstudio/CygonUnityImporter/releases",
+  "changelogUrl": "https://github.com/inspyrstudio/UnityCygonFramework/releases",
   "repository": {
-    "url": "git@github.com:inspyrstudio/CygonUnityImporter.git",
+    "url": "git@github.com:inspyrstudio/UnityCygonFramework.git",
     "type": "git",
     "revision": "f9335c44bc8104d2271e2a5c17c1829670fd7ca6"
   },

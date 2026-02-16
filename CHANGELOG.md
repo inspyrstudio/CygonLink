@@ -2,12 +2,6 @@
 
 All notable changes to this project will be documented in this file.
 
-## [0.1.1] - 2024-05-20
-
-### Added
-
-- Added CHANGELOG.md to track changes between versions.
-
 ## [0.1.0] - 2024-05-20
 
 ### Added
