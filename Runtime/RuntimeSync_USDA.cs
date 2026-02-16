@@ -50,16 +50,22 @@ public class RuntimeSync_USDA
     }
     private static void RefreshAll()
     {
-        string[] guids = AssetDatabase.FindAssets("t:DefaultAsset");
-        foreach (string guid in guids)
+        // Search the physical disk for all .usda files within the Assets folder
+        // This is more reliable than FindAssets for custom extensions.
+        string[] files = Directory.GetFiles(Application.dataPath, "*.usda", SearchOption.AllDirectories);
+
+        if (files.Length == 0)
         {
-            string path = AssetDatabase.GUIDToAssetPath(guid);
-            if (path.ToLower().EndsWith(".usda"))
-            {
-                RefreshSceneInstances(Path.GetFullPath(path)); 
-                Debug.Log("<b>Cygon (UCF)</b> <color=green>Forced refresh is complete</color>");
-            }
+            Debug.Log("<b>Cygon (UCF)</b> <color=yellow>No .usda files found to refresh.</color>");
+            return;
         }
+
+        foreach (string fullPath in files)
+        {
+            RefreshSceneInstances(fullPath);
+        }
+
+        Debug.Log($"<b>Cygon (UCF)</b> <color=green>Forced refresh complete. Processed {files.Length} files.</color>");
     }
 
     private static void RefreshSceneInstances(string fullPath)
