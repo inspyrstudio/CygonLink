@@ -7,7 +7,7 @@ using System.Collections.Generic;
 public class RuntimeSync_USDA
 {
     private static FileSystemWatcher projectWatcher;
-
+    private static EditorRuntime_USDA editorRuntime;
     static RuntimeSync_USDA()
     {
         // Initialize watcher for the Assets folder
@@ -24,6 +24,7 @@ public class RuntimeSync_USDA
         
         EditorApplication.playModeStateChanged += OnPlayModeStateChanged;
 
+        EditorRuntime_USDA.send
         Debug.Log("<b>Cygon (UCF)</b> <color=white>Waiting for changes in sources files</color>");
     }
     
