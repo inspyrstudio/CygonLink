@@ -1,6 +1,6 @@
 
 
-# Unity Cygon Framework
+# Cygon Link
 
 Seamless integration and live-sync for USDA files.
 
@@ -25,7 +25,7 @@ The Cygon Unity Importer provides a robust pipeline for bringing USDA (Universal
 - Open the Unity Package Manager (Window > Package Manager).
 - Click the + button and select Add package from git URL...
 - Paste the following URL:  
-  https://github.com/inspyrstudio/CygonUnityImporter.git
+  https://github.com/inspyrstudio/CygonLink.git
 
 *📖 Usage Guide*
 1. Import your Assets  
@@ -40,7 +40,7 @@ The Cygon Unity Importer provides a robust pipeline for bringing USDA (Universal
    Open the source file in Cygon.  
    Modify geometry or transforms and Save.
 
-4. Switch back to Unity : *`TheLiveReloader`* will trigger an orange log in the console, and your objects will
+4. Switch back to Unity : *`RuntimeSync_USDA`* will trigger an orange log in the console, and your objects will
    update instantly.
 
 ## Miscellaneous
@@ -50,4 +50,5 @@ The Cygon Unity Importer provides a robust pipeline for bringing USDA (Universal
 -  Render Pipeline: URP or HDRP recommended.
 
 *🤝 Contributing*  
+
 Contributions are welcome! Please feel free to submit a Pull Request or open an issue on the GitHub Repository.
