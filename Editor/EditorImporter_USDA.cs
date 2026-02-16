@@ -167,6 +167,8 @@ public class EditorImporter_USDA : ScriptedImporter
                 }
             }
         }
+        
+        Debug.Log($"<b>Cygon (UCF)</b> <color=green>Finished complete scene import...:</color> {name}");
 
         ctx.AddObjectToAsset("main_root", rootContainer);
         ctx.SetMainObject(rootContainer);
