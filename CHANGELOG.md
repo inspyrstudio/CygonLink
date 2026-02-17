@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [0.1.0] - 2024-05-20
+## [0.1.0]
 
 ### Added
 
@@ -17,7 +17,7 @@ All notable changes to this project will be documented in this file.
 
 - Textures and materials are now created in the correct sub-folders upon import.
 
-## [0.1.1-preview] - 2024-05-20
+## [0.1.1-preview]
 
 ### Added ###
 
@@ -32,12 +32,24 @@ All notable changes to this project will be documented in this file.
 
 - `RefreshAll` method was not refreshing correctly with the shortcut
 
-## [0.1.2-preview] - 2024-05-20
+## [0.1.2-preview]
 
 ### Added ###
 
-- EditorRuntime_USDA, a static class with information for custom logs.
+- `EditorRuntime_USDA`, a static class with information for custom logs.
 
 ### Fixed ###
 
 - `Cygon Link` name was not the same everywhere.
+
+## [0.1.3-preview]
+
+### Added ###
+
+- `EditorPostProcessor_USDA`, a static `AssetPostProcessor` that auto imports materials, finds textures , 
+make them a normal map if needed and select the material shader correclty based on current `Graphics Pipeline`.
+This currently works only for BaseMap, NormalMap and HeightMap
+
+### Fixed ###
+
+- Error on `AssetDatabase.Refresh()` or `AssetDatabase.SaveAssets()` by using `EditorPostProcessor_USDA`.

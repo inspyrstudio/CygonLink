@@ -162,7 +162,7 @@ public class EditorImporter_USDA : ScriptedImporter
                     if (lastSlash != -1 && closeBracket > lastSlash)
                     {
                         string matName = trimmed.Substring(lastSlash + 1, closeBracket - lastSlash - 1);
-                        ApplySharedMaterial(activeTarget, matName, ctx);
+                        ApplyExistingMaterial(activeTarget, matName, ctx);
                     }
                 }
             }
@@ -177,68 +177,19 @@ public class EditorImporter_USDA : ScriptedImporter
 
     #region HELPERS
 
-    private void ApplySharedMaterial(GameObject target, string matName, AssetImportContext ctx)
+    private void ApplyExistingMaterial(GameObject target, string matName, AssetImportContext ctx)
     {
         MeshRenderer renderer = target.GetComponent<MeshRenderer>();
         if (renderer == null) renderer = target.AddComponent<MeshRenderer>();
 
-        string usdaFolder = Path.GetDirectoryName(ctx.assetPath);
-        string materialsFolder = Path.Combine(usdaFolder, "materials");
-        
-        // Ensure folder exists before we even check for the file
-        if (!Directory.Exists(materialsFolder))
-        {
-            Directory.CreateDirectory(materialsFolder);
-            AssetDatabase.Refresh(); 
-        }
-
-        string materialPath = Path.Combine(materialsFolder, matName + ".mat").Replace('\\', '/');
+        string materialPath = Path.Combine(Path.GetDirectoryName(ctx.assetPath), "materials", matName + ".mat").Replace('\\', '/');
         Material mat = AssetDatabase.LoadAssetAtPath<Material>(materialPath);
 
-        if (mat == null)
+        if (mat != null)
         {
-            // Pick Shader based on Pipeline
-            string shaderName = "Standard";
-            if (GraphicsSettings.currentRenderPipeline != null)
-            {
-                string rpName = GraphicsSettings.currentRenderPipeline.GetType().ToString();
-                if (rpName.Contains("Universal")) shaderName = "Universal Render Pipeline/Lit";
-                else if (rpName.Contains("HDRP")) shaderName = "HDRP/Lit";
-            }
-
-            Shader shader = Shader.Find(shaderName);
-            if (shader == null) shader = Shader.Find("Hidden/InternalErrorShader"); // Backup to see pink if truly broken
-
-            mat = new Material(shader);
-            mat.name = matName;
-
-            // Apply Color & Texture
-            string colorProp = shaderName.Contains("Standard") ? "_Color" : "_BaseColor";
-            string texProp = shaderName.Contains("Universal") ? "_BaseMap" : (shaderName.Contains("HDRP") ? "_BaseColorMap" : "_MainTex");
-
-            if (_colorLibrary.TryGetValue(matName, out Color col))
-                mat.SetColor(colorProp, col);
-
-            if (_texturePathLibrary.TryGetValue(matName, out string texPath))
-            {
-                string fullTexPath = Path.Combine(usdaFolder, texPath).Replace('\\', '/');
-                Texture2D tex = AssetDatabase.LoadAssetAtPath<Texture2D>(fullTexPath);
-                if (tex != null) mat.SetTexture(texProp, tex);
-            }
-            
-            // Add this to your material setup logic to test
-            mat.SetColor("_OcclusionColor", Color.white); 
-            mat.SetFloat("_OcclusionStrength", 0.0f);
-
-            AssetDatabase.CreateAsset(mat, materialPath);
-            AssetDatabase.SaveAssets();
+            renderer.sharedMaterial = mat;
+            ctx.DependsOnSourceAsset(materialPath);
         }
-
-        // CRITICAL: Tell Unity that this USDA import depends on the external material file.
-        // This fixes the "Purple/Invisible" issue on first import.
-        ctx.DependsOnSourceAsset(materialPath);
-
-        renderer.sharedMaterial = mat;
     }
     private Color ParseColor(string line) {
         Match m = Regex.Match(line, @"\(([^)]+)\)");
