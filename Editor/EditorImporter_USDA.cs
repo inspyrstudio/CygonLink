@@ -33,6 +33,17 @@ public class EditorImporter_USDA : ScriptedImporter
 
     public override void OnImportAsset(AssetImportContext ctx)
     {
+        string firstLine = "";
+        using (var reader = new StreamReader(ctx.assetPath))
+        {
+            firstLine = reader.ReadLine() ?? "";
+        }
+        if (firstLine != "#usda 1.0 | Cygon")
+        {
+            EditorRuntime_USDA.SendLog("white",$"Non-Cygon USDA detected. Skipping custom import for: {ctx.assetPath}");
+            return; 
+        }
+        
         _meshCache.Clear();
         _colorLibrary.Clear();
         _texturePathLibrary.Clear();
