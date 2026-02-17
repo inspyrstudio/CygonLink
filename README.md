@@ -47,11 +47,12 @@ Cygon Link is a powerful bridge that provides a robust pipeline for bringing USD
 
 *⚙️ Requirements*
 - Unity Version: 6000.1.4f1 or higher.  `(Note, the package is not garanteed to work before 6000.1.4f1 but it's up to you if you want to test)`
-- Cygon Version 0.2.0.7i minimum. `(Note, this time the version of Cygon needed is mandatory to be at least 0.2.0.7i because before this one exportation was not meant for unity importation and would not work)`
+- Cygon Version 0.2.0.7i minimum. `(Note, this time the version of Cygon needed is mandatory to be at least 0.2.0.7i, before this one, exportation was not meant for unity importation and will not work)`
 
 *🤝 Contributing*  
 
 Contributions are welcome! Please feel free to tell us about anything that doesnt work with the package on the Discord.
+
 
 
 
