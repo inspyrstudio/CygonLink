@@ -10,13 +10,13 @@ Cygon Link is a powerful bridge that provides a robust pipeline for bringing USD
 ## Key Features
 
 
-*📦 Automated Prefab Generation* : Converts USDA hierarchies, meshes, and materials directly into native Unity GameObjects.
+*📦 Automated Prefab Generation* : Converts USDA hierarchies, meshes, and materials directly into native Unity GameObjects with collision.
 
 *🔥 Live Hot-Reloading* : Detects file saves in Cygon and instantly updates all instances in your active Unity scene (even in Play Mode).
 
 *🛠️ Intelligent Mesh Processing* : Includes a "Weld Vertices" pass and normal-correction logic to eliminate dark artifacts and shadow leaks.
 
-*🎨 Material Management* : Automatically generates physical materials in a local /Materials folder with support for URP and HDRP.
+*🎨 Material Management* : Automatically generates materials in a local /Materials folder with support for any Graphics Pipeline.
 
 
 ## Getting Started
@@ -27,7 +27,7 @@ Cygon Link is a powerful bridge that provides a robust pipeline for bringing USD
 - Paste the following URL:  
   https://github.com/inspyrstudio/CygonLink.git
 
-*📖 Usage Guide*
+*How to use it ?*
 1. Import your Assets  
    Drag your .usda file along with its associated textures and models folders into the Unity Project window.  
    Note: The importer will automatically create a /Materials sub-folder to store generated .mat files.
@@ -38,19 +38,20 @@ Cygon Link is a powerful bridge that provides a robust pipeline for bringing USD
 3. Live Editing Workflow  
    Keep your Unity Scene open (works in both Edit and Play Mode).  
    Open the source file in Cygon.  
-   Modify geometry or transforms and Save.
+   Modify geometry or transforms and Export or Quick Export with CTRL + S.
 
-4. Switch back to Unity : *`RuntimeSync_USDA`* will trigger an orange log in the console, and your objects will
+4. Switch back to Unity : * the auto sync will trigger an orange log in the console, and your objects will
    update instantly.
 
 ## Miscellaneous
 
 *⚙️ Requirements*
 - Unity Version: 6000.1.4f1 or higher.  `(Note, the package is not garanteed to work before 6000.1.4f1 but it's up to you if you want to test)`
--  Render Pipeline: URP or HDRP recommended.
+- Cygon Version 0.2.0.7i minimum. `(Note, this time the version of Cygon needed is mandatory to be at least 0.2.0.7i because before this one exportation was not meant for unity importation and would not work)`
 
 *🤝 Contributing*  
 
-Contributions are welcome! Please feel free to submit a Pull Request or open an issue on the GitHub Repository.
+Contributions are welcome! Please feel free to tell us about anything that doesnt work with the package on the Discord.
+
 
 
