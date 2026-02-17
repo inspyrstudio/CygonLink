@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using UnityEditor;
@@ -6,7 +7,7 @@ using System.IO;
 using System.Text.RegularExpressions;
 using UnityEngine.Rendering;
 
-public class EditorMaterialCreator_USDA : AssetPostprocessor
+public class EditorPostProcessor_USDA : AssetPostprocessor
 {
     static void OnPostprocessAllAssets(string[] importedAssets, string[] deletedAssets, string[] movedAssets, string[] movedFromAssetPaths)
     {
@@ -16,7 +17,7 @@ public class EditorMaterialCreator_USDA : AssetPostprocessor
         {
             if (path.ToLower().EndsWith(".usda"))
             {
-                if (ProcessUsdaMaterials(path)) 
+                if (ProcessMaterials(path)) 
                 {
                     usdasToReimport.Add(path);
                 }
@@ -30,18 +31,16 @@ public class EditorMaterialCreator_USDA : AssetPostprocessor
             AssetDatabase.ImportAsset(usdaPath, ImportAssetOptions.ForceUpdate);
         }
     }
-
-    private static bool ProcessUsdaMaterials(string usdaPath)
+    private static bool ProcessMaterials(string usdaPath)
     {
         bool createdNew = false;
         string usdaFolder = Path.GetDirectoryName(usdaPath);
         string materialsFolder = Path.Combine(usdaFolder, "materials");
+        string texturesFolder = Path.Combine(usdaFolder, "textures");
+
         if (!Directory.Exists(materialsFolder)) Directory.CreateDirectory(materialsFolder);
 
         string rawText = File.ReadAllText(usdaPath);
-
-        // 1. Identify all Material blocks
-        // Using a simpler split to find blocks starting with 'def Material'
         string[] materialBlocks = rawText.Split(new string[] { "def Material" }, System.StringSplitOptions.RemoveEmptyEntries);
 
         foreach (var block in materialBlocks)
@@ -52,57 +51,49 @@ public class EditorMaterialCreator_USDA : AssetPostprocessor
             string matName = nameMatch.Groups[1].Value;
             string matPath = Path.Combine(materialsFolder, matName + ".mat").Replace('\\', '/');
 
-            // Only create if it doesn't exist to allow for manual user edits later
             if (AssetDatabase.LoadAssetAtPath<Material>(matPath) == null)
             {
-                // Detect Pipeline
+                // Property Mapping based on Pipeline
                 string shaderName = "Standard";
-                string colorProp = "_Color";
-                string texProp = "_MainTex";
+                string colorProp = "_Color", texProp = "_MainTex";
+                string normalProp = "_BumpMap", heightProp = "_ParallaxMap";
 
                 if (GraphicsSettings.currentRenderPipeline != null)
                 {
                     string rpName = GraphicsSettings.currentRenderPipeline.GetType().ToString();
                     if (rpName.Contains("Universal")) {
                         shaderName = "Universal Render Pipeline/Lit";
-                        colorProp = "_BaseColor";
-                        texProp = "_BaseMap";
-                    }
-                    else if (rpName.Contains("HDRP")) {
+                        colorProp = "_BaseColor"; texProp = "_BaseMap";
+                        normalProp = "_BumpMap"; heightProp = "_ParallaxMap";
+                    } else if (rpName.Contains("HDRP")) {
                         shaderName = "HDRP/Lit";
-                        colorProp = "_BaseColor";
-                        texProp = "_BaseColorMap";
+                        colorProp = "_BaseColor"; texProp = "_BaseColorMap";
+                        normalProp = "_NormalMap"; heightProp = "_HeightMap";
                     }
                 }
 
                 Material mat = new Material(Shader.Find(shaderName));
 
-                // 2. Parse Color
+                // 1. Color assignment
                 Match colorMatch = Regex.Match(block, @"color3f inputs:diffuseColor = \(([^)]+)\)");
                 if (colorMatch.Success)
                 {
                     string[] c = colorMatch.Groups[1].Value.Split(',');
-                    Color col = new Color(
+                    mat.SetColor(colorProp, new Color(
                         float.Parse(c[0].Trim(), CultureInfo.InvariantCulture),
                         float.Parse(c[1].Trim(), CultureInfo.InvariantCulture),
-                        float.Parse(c[2].Trim(), CultureInfo.InvariantCulture)
-                    );
-                    mat.SetColor(colorProp, col);
+                        float.Parse(c[2].Trim(), CultureInfo.InvariantCulture)));
                 }
 
-                // 3. Parse Texture Path
-                Match texMatch = Regex.Match(block, @"asset inputs:file = @([^@]+)@");
-                if (texMatch.Success)
-                {
-                    string localTexPath = texMatch.Groups[1].Value.Trim().Replace('/', Path.DirectorySeparatorChar);
-                    string fullTexPath = Path.Combine(usdaFolder, localTexPath).Replace('\\', '/');
-                    
-                    // Convert system path to Project relative path for AssetDatabase
-                    string projectRelativeTexPath = "Assets" + fullTexPath.Substring(Application.dataPath.Length);
-                    
-                    Texture2D tex = AssetDatabase.LoadAssetAtPath<Texture2D>(projectRelativeTexPath);
-                    if (tex != null) mat.SetTexture(texProp, tex);
-                }
+                // 2. Automated Texture Suffix Search
+                // We look for: matName_complete, matName_normal, matName_height
+                TryAssignTexture(mat, texProp, Path.Combine(texturesFolder, matName + "_complete"), false);
+                TryAssignTexture(mat, normalProp, Path.Combine(texturesFolder, matName + "_normal"), true);
+                TryAssignTexture(mat, heightProp, Path.Combine(texturesFolder, matName + "_height"), false);
+
+                // Enable keywords so the shader actually renders the maps
+                if (mat.GetTexture(normalProp)) mat.EnableKeyword("_NORMALMAP");
+                if (mat.GetTexture(heightProp)) mat.EnableKeyword("_PARALLAXMAP");
 
                 AssetDatabase.CreateAsset(mat, matPath);
                 createdNew = true;
@@ -116,5 +107,36 @@ public class EditorMaterialCreator_USDA : AssetPostprocessor
         }
 
         return createdNew;
+    }
+    private static void TryAssignTexture(Material mat, string propName, string basePath, bool isNormalMap)
+    {
+        // Try common extensions
+        string[] extensions = { ".png", ".jpg", ".tga", ".jpeg" };
+        foreach (var ext in extensions)
+        {
+            string fullPath = basePath + ext;
+            if (File.Exists(fullPath))
+            {
+                //string assetPath = "Assets" + fullPath.Substring(Application.dataPath.Length).Replace('\\', '/');
+                
+                if (isNormalMap) FixNormalMapImportSettings(fullPath);
+
+                Texture2D tex = AssetDatabase.LoadAssetAtPath<Texture2D>(fullPath);
+                if (tex != null)
+                {
+                    mat.SetTexture(propName, tex);
+                    return;
+                }
+            }
+        }
+    }
+    private static void FixNormalMapImportSettings(string assetPath)
+    {
+        TextureImporter importer = AssetImporter.GetAtPath(assetPath) as TextureImporter;
+        if (importer != null && importer.textureType != TextureImporterType.NormalMap)
+        {
+            importer.textureType = TextureImporterType.NormalMap;
+            importer.SaveAndReimport();
+        }
     }
 }
