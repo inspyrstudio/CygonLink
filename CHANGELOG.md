@@ -36,14 +36,20 @@ All notable changes to this project will be documented in this file.
 
 ### Added ###
 
-- EditorRuntime_USDA, a static class with information for custom logs.
+- `EditorRuntime_USDA`, a static class with information for custom logs.
 
 ### Fixed ###
 
 - `Cygon Link` name was not the same everywhere.
 
-## [0.1.3-exp] - 2024-05-20
+## [0.1.3-preview] - 2024-05-20
+
+### Added ###
+
+- `EditorPostProcessor_USDA`, a static `AssetPostProcessor` that auto imports materials, finds textures , 
+make them a normal map if needed and select the material shader correclty based on current `Graphics Pipeline`.
+This currently works only for BaseMap, NormalMap and HeightMap
 
 ### Fixed ###
 
-- Error on `AssetDatabase.Refresh()` or `AssetDatabase.SaveAssets()`.
+- Error on `AssetDatabase.Refresh()` or `AssetDatabase.SaveAssets()` by using `EditorPostProcessor_USDA`.
