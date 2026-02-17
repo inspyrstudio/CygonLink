@@ -4,11 +4,32 @@ using System.Globalization;
 using UnityEditor;
 using UnityEngine;
 using System.IO;
+using System.Linq;
 using System.Text.RegularExpressions;
 using UnityEngine.Rendering;
 
-public class EditorPostProcessor_USDA : AssetPostprocessor
+public class EditorProcessor_USDA : AssetPostprocessor
 {
+    void OnPreprocessAsset()
+    {
+        if (assetPath.EndsWith(".usda"))
+        {
+            // Read the first line
+            string firstLine = File.ReadLines(assetPath).FirstOrDefault();
+
+            // If it's NOT a Cygon file, force the default Unity USD importer
+            if (firstLine == "#usda 1.0 | Cygon")
+            {
+                // Force it to use YOUR importer for Cygon files
+                AssetDatabase.SetImporterOverride<EditorImporter_USDA>(assetPath);
+            }
+            else
+            {
+                EditorRuntime_USDA.SendLog("white", "USDA is not a Cygon file, skipping custom import...");
+                AssetDatabase.ClearImporterOverride(assetPath);
+            }
+        }
+    }
     static void OnPostprocessAllAssets(string[] importedAssets, string[] deletedAssets, string[] movedAssets, string[] movedFromAssetPaths)
     {
         List<string> usdasToReimport = new List<string>();

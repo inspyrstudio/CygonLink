@@ -3,13 +3,14 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text.RegularExpressions;
 using System.Globalization;
+using System.Linq;
 using Unity.VisualScripting;
 using UnityEditor;
 using UnityEngine;
 using UnityEditor.AssetImporters;
 using UnityEngine.Rendering;
 
-[ScriptedImporter(1, "usda")]
+[ScriptedImporter(1,"usda")]
 public class EditorImporter_USDA : ScriptedImporter
 {
      //=============================================================================
@@ -33,15 +34,13 @@ public class EditorImporter_USDA : ScriptedImporter
 
     public override void OnImportAsset(AssetImportContext ctx)
     {
-        string firstLine = "";
-        using (var reader = new StreamReader(ctx.assetPath))
-        {
-            firstLine = reader.ReadLine() ?? "";
-        }
+        // Read the first line
+        string firstLine = File.ReadLines(assetPath).FirstOrDefault();
+
+        // If it's NOT a Cygon file, force the default Unity USD importer
         if (firstLine != "#usda 1.0 | Cygon")
         {
-            EditorRuntime_USDA.SendLog("white",$"Non-Cygon USDA detected. Skipping custom import for: {ctx.assetPath}");
-            return; 
+            return;
         }
         
         _meshCache.Clear();
