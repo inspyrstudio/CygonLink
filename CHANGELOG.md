@@ -53,3 +53,10 @@ This currently works only for BaseMap, NormalMap and HeightMap
 ### Fixed ###
 
 - Error on `AssetDatabase.Refresh()` or `AssetDatabase.SaveAssets()` by using `EditorPostProcessor_USDA`.
+
+## [0.1.4-preview]
+
+### Changed ###
+
+- `EditorPostProcessor_USDA`, to `EditorProcessor_USDA` because it now handles default and custom importer based
+on infos found in the usda.
