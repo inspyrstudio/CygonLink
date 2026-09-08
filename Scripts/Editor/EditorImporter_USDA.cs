@@ -27,7 +27,10 @@ namespace InspyrStudio.CygonLink
 
         private Dictionary<string, Mesh> _meshCache = new ();
         private Dictionary<string, List<string>> _meshSubsets = new ();
-        private Dictionary<GameObject, string> _instanceMeshPath = new ();
+        private Dictionary<string, (int Start, int End)> _meshLibrary = new ();
+        private Dictionary<string, Dictionary<string, string>> _librarySubsetBindings = new ();
+        private Dictionary<GameObject, Mesh> _instanceMesh = new ();
+        private Dictionary<GameObject, List<string>> _instanceSubsets = new ();
         private Dictionary<GameObject, string> _singleBindings = new ();
         private Dictionary<GameObject, Dictionary<string, string>> _subsetBindings = new ();
 
@@ -43,7 +46,7 @@ namespace InspyrStudio.CygonLink
 
         /// <summary>
         /// Entry point called by Unity. Ignores non-Cygon files, then dispatches to the single-mesh
-        /// or scene importer depending on whether the file contains raw geometry.
+        /// or the scene importer.
         /// </summary>
         /// <param name="ctx">The import context Unity provides for the asset being imported.</param>
         public override void OnImportAsset(AssetImportContext ctx)
@@ -56,8 +59,7 @@ namespace InspyrStudio.CygonLink
             string rawText = File.ReadAllText(ctx.assetPath);
             string fileName = Path.GetFileNameWithoutExtension(ctx.assetPath);
             
-            // A mesh file has raw geometry; a scene file only references meshes + materials.
-            if (rawText.Contains("point3f[] points"))
+            if (IsStandaloneMeshFile(rawText))
                 ImportAsSingleMesh(ctx, rawText, fileName);
             else
                 ImportAsScene(ctx, rawText, fileName);
@@ -68,9 +70,42 @@ namespace InspyrStudio.CygonLink
         {
             _meshCache.Clear();
             _meshSubsets.Clear();
-            _instanceMeshPath.Clear();
+            _meshLibrary.Clear();
+            _librarySubsetBindings.Clear();
+            _instanceMesh.Clear();
+            _instanceSubsets.Clear();
             _singleBindings.Clear();
             _subsetBindings.Clear();
+        }
+
+        /// <summary>
+        /// Tells a standalone mesh file (raw geometry only, referenced by a scene) from a scene file.
+        /// A scene declares materials, references other files, or holds several meshes; since the
+        /// single-file export embeds its meshes, geometry alone no longer identifies a mesh file.
+        /// </summary>
+        /// <param name="rawText">Full text of the USDA.</param>
+        /// <returns>True when the file is a standalone mesh and can be imported as one object.</returns>
+        private static bool IsStandaloneMeshFile(string rawText)
+        {
+            if (!rawText.Contains("point3f[] points")) return false;
+            if (rawText.Contains("def Material")) return false;
+            if (rawText.Contains("prepend references")) return false;
+            return CountOccurrences(rawText, "def Mesh ") <= 1;
+        }
+
+        /// <summary>Counts the non-overlapping occurrences of a substring.</summary>
+        /// <param name="text">The text to scan.</param>
+        /// <param name="token">The substring to count.</param>
+        /// <returns>How many times <paramref name="token"/> occurs in <paramref name="text"/>.</returns>
+        private static int CountOccurrences(string text, string token)
+        {
+            int count = 0, i = 0;
+            while ((i = text.IndexOf(token, i, StringComparison.Ordinal)) != -1)
+            {
+                count++;
+                i += token.Length;
+            }
+            return count;
         }
 
         /// <summary>Imports a standalone mesh USDA as a single GameObject with a mesh + renderer.</summary>
@@ -98,6 +133,8 @@ namespace InspyrStudio.CygonLink
         private void ImportAsScene(AssetImportContext ctx, string text, string name)
         {
             string[] lines = text.Split(new[] { '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries);
+            
+            IndexMeshLibrary(lines);
             
             GameObject rootContainer = BuildSceneHierarchy(ctx, lines, name);
             ApplyMaterialsToInstances(ctx);
@@ -140,11 +177,34 @@ namespace InspyrStudio.CygonLink
             GameObject lastMeshInstance = null;
             string currentSubset = null;
             
-            foreach (string line in lines)
+            for (int li = 0; li < lines.Length; li++)
             {
-                string trimmed = line.Trim();
+                string trimmed = lines[li].Trim();
                 if (string.IsNullOrEmpty(trimmed) || trimmed.StartsWith("#")) continue;
+
+                // Mesh contain in a class
+                if (trimmed.StartsWith("class "))
+                {
+                    li = FindBlockEnd(lines, li);
+                    activeTarget = null;
+                    continue;
+                }
                 
+                // Inline mesh
+                if (trimmed.StartsWith("def Mesh "))
+                {
+                    int blockEnd = FindBlockEnd(lines, li);
+                    GameObject owner = parentStack.Peek();
+                    if (owner != rootContainer)
+                    {
+                        ApplyInlineMesh(ctx, owner, lines, li, blockEnd);
+                        lastMeshInstance = owner;
+                    }
+                    li = blockEnd;
+                    activeTarget = null;
+                    continue;
+                }
+
                 // Definition: spawn a GameObject (unless it's a material/shader prim).
                 if (trimmed.StartsWith("def "))
                 {
@@ -170,7 +230,12 @@ namespace InspyrStudio.CygonLink
                 
                 if (trimmed.Contains("rel material:binding"))
                 {
-                    CaptureMaterialBinding(trimmed, lastMeshInstance, currentSubset);
+                    // A subset binding belongs to the mesh being overridden, so it targets the last mesh
+                    // instance. A prim-level binding belongs to the prim whose block we are inside, which
+                    // is the stack top: in the single-file export it is declared before the inline mesh,
+                    // so lastMeshInstance is not set yet and would point at the previous object.
+                    GameObject bindingTarget = currentSubset != null ? lastMeshInstance : parentStack.Peek();
+                    if (bindingTarget != rootContainer) CaptureMaterialBinding(trimmed, bindingTarget, currentSubset);
                     continue;
                 }
                 
@@ -179,14 +244,9 @@ namespace InspyrStudio.CygonLink
                 {
                     if (ApplyTransformProperty(activeTarget, trimmed, finalizedTransforms)) continue;
                     
-                    if (trimmed.Contains("prepend references"))
+                    if (trimmed.Contains("references") && ApplyReference(ctx, activeTarget, trimmed, lines))
                     {
-                        Match refM = Regex.Match(trimmed, @"@([^@]+)@");
-                        if (refM.Success)
-                        {
-                            ApplyMeshReference(ctx, activeTarget, refM.Groups[1].Value);
-                            lastMeshInstance = activeTarget;
-                        }
+                        lastMeshInstance = activeTarget;
                     }
                 }
             }
@@ -221,6 +281,223 @@ namespace InspyrStudio.CygonLink
         }
 
         /// <summary>
+        /// Records every <c>def Mesh</c> block by the prim path of its parent, so a reference such as
+        /// <c>&lt;/World/Meshes/Wall&gt;</c> resolves to geometry. Meshes kept in a <c>class</c> library
+        /// are shared by many instances, so this runs once before the hierarchy is built
+        /// </summary>
+        /// <param name="lines">All lines of the scene USDA</param>
+        private void IndexMeshLibrary(string[] lines)
+        {
+            List<string> path = new List<string>();
+            string pending = null;
+            
+            for (int li = 0; li < lines.Length; li++)
+            {
+                string trimmed = lines[li].Trim();
+                if (string.IsNullOrEmpty(trimmed) || trimmed.StartsWith("#")) continue;
+                
+                if (trimmed.StartsWith("def Mesh "))
+                {
+                    int blockEnd = FindBlockEnd(lines, li);
+                    _meshLibrary["/" + string.Join("/", path)] = (li, blockEnd);
+                    li = blockEnd;
+                    continue;
+                }
+                
+                if (trimmed.StartsWith("def ") || trimmed.StartsWith("class ") || trimmed.StartsWith("over "))
+                {
+                    Match m = Regex.Match(trimmed, "\"([^\"]+)\"");
+                    pending = m.Success ? m.Groups[1].Value : null;
+                    continue;
+                }
+                
+                if (trimmed.Contains("{")) { path.Add(pending ?? string.Empty); pending = null; continue; }
+                if (trimmed.Contains("}") && path.Count > 0) path.RemoveAt(path.Count - 1);
+            }
+        }
+
+        /// <summary>Finds the line that closes the block opened at or after <paramref name="start"/></summary>
+        /// <param name="lines">All lines of the file being parsed</param>
+        /// <param name="start">Index of the prim declaration line</param>
+        /// <returns>Index of the matching closing brace, or the last line when the block is unterminated</returns>
+        private static int FindBlockEnd(string[] lines, int start)
+        {
+            int depth = 0;
+            bool opened = false;
+            
+            for (int i = start; i < lines.Length; i++)
+            {
+                foreach (char c in lines[i])
+                {
+                    if (c == '{') { depth++; opened = true; }
+                    else if (c == '}') depth--;
+                }
+                
+                if (opened && depth <= 0) return i;
+            }
+            
+            return lines.Length - 1;
+        }
+
+        /// <summary>
+        /// Builds a mesh from an inline <c>def Mesh</c> block (single-file export) and attaches it to the
+        /// prim enclosing it, along with the material bindings its GeomSubsets declare
+        /// </summary>
+        /// <param name="ctx">The import context (registers the mesh as a sub-asset)</param>
+        /// <param name="owner">The enclosing prim's GameObject, which receives the mesh</param>
+        /// <param name="lines">All lines of the scene USDA</param>
+        /// <param name="start">Index of the <c>def Mesh</c> line</param>
+        /// <param name="end">Index of the line closing the mesh block</param>
+        private void ApplyInlineMesh(AssetImportContext ctx, GameObject owner, string[] lines, int start, int end)
+        {
+            string block = string.Join("\n", lines, start, end - start + 1);
+            
+            Mesh mesh = BuildMeshFromUsda(block, out List<string> subsetNames);
+            if (mesh == null) return;
+            
+            ApplyMeshPrimOffset(mesh, lines, start, end, owner.name);
+            
+            mesh.name = owner.name;
+            ctx.AddObjectToAsset(owner.name + "_m", mesh);
+            
+            AttachMesh(owner, mesh);
+            _instanceMesh[owner] = mesh;
+            _instanceSubsets[owner] = subsetNames;
+            
+            CaptureSubsetBindings(block, owner);
+        }
+
+        /// <summary>
+        /// Bakes the mesh prim's own transform into its vertices. Only a translation is baked: the
+        /// exporter uses this op purely to offset geometry from its pivot, and a rotation or scale
+        /// there is reported rather than silently dropped.
+        /// </summary>
+        /// <param name="mesh">The freshly built mesh, modified in place</param>
+        /// <param name="lines">All lines of the scene USDA</param>
+        /// <param name="start">Index of the <c>def Mesh</c> line</param>
+        /// <param name="end">Index of the line closing the mesh block</param>
+        /// <param name="ownerName">Name of the enclosing prim, used for log message</param>
+        private void ApplyMeshPrimOffset(Mesh mesh, string[] lines, int start, int end, string ownerName)
+        {
+            Vector3 offset = Vector3.zero;
+            
+            for (int i = start + 1; i <= end; i++)
+            {
+                string trimmed = lines[i].Trim();
+                
+                // Only the mesh prim's own ops count; stop at its first nested prim (a GeomSubset).
+                if (trimmed.StartsWith("def ")) break;
+                if (trimmed.Contains("xformOpOrder")) continue;
+                
+                if (trimmed.Contains("xformOp:translate"))
+                {
+                    offset = ParseVector3FromLine(trimmed, true);
+                }
+                else if (trimmed.Contains("xformOp:rotate") && ParseRotationFromLine(trimmed) != Vector3.zero)
+                {
+                    EditorRuntime_USDA.SendLog("orange", $"'{ownerName}': rotation on the mesh prim is not applied.");
+                }
+                else if (trimmed.Contains("xformOp:scale") && ParseVector3FromLine(trimmed, false) != Vector3.one)
+                {
+                    EditorRuntime_USDA.SendLog("orange", $"'{ownerName}': scale on the mesh prim is not applied.");
+                }
+            }
+            
+            if (offset == Vector3.zero) return;
+            
+            Vector3[] verts = mesh.vertices;
+            for (int i = 0; i < verts.Length; i++) verts[i] += offset;
+            
+            mesh.vertices = verts;
+            mesh.RecalculateBounds();
+        }
+
+        /// <summary>
+        /// Records the material bound by each <c>def GeomSubset</c> of an inline mesh block. In the
+        /// single-file export the binding sits in the subset prim itself rather than in an "over" block
+        /// </summary>
+        /// <param name="block">Text of the <c>def Mesh</c> block</param>
+        /// <param name="owner">The GameObject carrying the mesh</param>
+        private void CaptureSubsetBindings(string block, GameObject owner)
+        {
+            ApplySubsetBindings(owner, ParseSubsetBindings(block));
+        }
+
+        /// <summary>Reads the material name out of a <c>rel material:binding</c> line</summary>
+        /// <param name="trimmed">The trimmed binding line</param>
+        /// <returns>The material's name, or null when the line holds no prim path</returns>
+        private static string ExtractBindingName(string trimmed)
+        {
+            int lastSlash = trimmed.LastIndexOf('/');
+            int closeBracket = trimmed.LastIndexOf('>');
+            if (lastSlash == -1 || closeBracket <= lastSlash) return null;
+            
+            return trimmed.Substring(lastSlash + 1, closeBracket - lastSlash - 1);
+        }
+
+        /// <summary>
+        /// Reads the material each <c>def GeomSubset</c> of a mesh block binds. Returned as a map so a
+        /// library mesh can be parsed once and its bindings handed to every instance referencing it
+        /// </summary>
+        /// <param name="block">Text of the <c>def Mesh</c> block</param>
+        /// <returns>Subset name to material name, empty when the mesh has no subsets</returns>
+        private static Dictionary<string, string> ParseSubsetBindings(string block)
+        {
+            Dictionary<string, string> bindings = new Dictionary<string, string>();
+            string subset = null;
+            
+            foreach (string raw in block.Split('\n'))
+            {
+                string trimmed = raw.Trim();
+                
+                if (trimmed.StartsWith("def GeomSubset"))
+                {
+                    Match m = Regex.Match(trimmed, "\"([^\"]+)\"");
+                    subset = m.Success ? m.Groups[1].Value : null;
+                }
+                else if (subset != null && trimmed.Contains("rel material:binding"))
+                {
+                    string matName = ExtractBindingName(trimmed);
+                    if (!string.IsNullOrEmpty(matName)) bindings[subset] = matName;
+                    subset = null;
+                }
+            }
+            
+            return bindings;
+        }
+
+        /// <summary>Records a mesh's per-subset material bindings against one instance</summary>
+        /// <param name="owner">The GameObject carrying the mesh</param>
+        /// <param name="bindings">Subset name to material name, as returned by ParseSubsetBindings</param>
+        private void ApplySubsetBindings(GameObject owner, Dictionary<string, string> bindings)
+        {
+            if (bindings == null || bindings.Count == 0) return;
+            
+            if (!_subsetBindings.TryGetValue(owner, out Dictionary<string, string> binds))
+            {
+                binds = new Dictionary<string, string>();
+                _subsetBindings[owner] = binds;
+            }
+            
+            foreach (KeyValuePair<string, string> kv in bindings) binds[kv.Key] = kv.Value;
+        }
+
+        /// <summary>Wires a mesh onto a GameObject with a renderer and a matching collider</summary>
+        /// <param name="target">The GameObject that receives the components</param>
+        /// <param name="mesh">The mesh to attach</param>
+        private static void AttachMesh(GameObject target, Mesh mesh)
+        {
+            if (!target.GetComponent<MeshFilter>()) target.AddComponent<MeshFilter>().sharedMesh = mesh;
+            
+            MeshRenderer mr = target.GetComponent<MeshRenderer>();
+            if (mr == null) mr = target.AddComponent<MeshRenderer>();
+            mr.shadowCastingMode = ShadowCastingMode.TwoSided;
+            
+            MeshCollider mc = target.AddComponent<MeshCollider>();
+            mc.sharedMesh = mesh;
+        }
+
+        /// <summary>
         /// Resolves the subset targeted by an "over" line, matching it against the known GeomSubsets
         /// of the instance's mesh.
         /// </summary>
@@ -233,8 +510,7 @@ namespace InspyrStudio.CygonLink
             string overName = om.Success ? om.Groups[1].Value : null;
             
             if (overName != null && instance != null &&
-                _instanceMeshPath.TryGetValue(instance, out string meshPath) &&
-                _meshSubsets.TryGetValue(meshPath, out List<string> subsets) &&
+                _instanceSubsets.TryGetValue(instance, out List<string> subsets) &&
                 subsets != null && subsets.Contains(overName))
             {
                 return overName;
@@ -271,7 +547,8 @@ namespace InspyrStudio.CygonLink
                 return true;
             }
             
-            if (trimmed.Contains("xformOp:rotateZYX") && finalized.Add((objID, TransformOp.Rotate)))
+            // Matches any rotate variant
+            if (trimmed.Contains("xformOp:rotate") && finalized.Add((objID, TransformOp.Rotate)))
             {
                 target.transform.localEulerAngles = ParseRotationFromLine(trimmed);
                 return true;
@@ -286,11 +563,8 @@ namespace InspyrStudio.CygonLink
         /// <param name="subset">Subset name for a per-face binding, or null for the instance-wide binding.</param>
         private void CaptureMaterialBinding(string trimmed, GameObject instance, string subset)
         {
-            int lastSlash = trimmed.LastIndexOf('/');
-            int closeBracket = trimmed.LastIndexOf('>');
-            if (lastSlash == -1 || closeBracket <= lastSlash || instance == null) return;
-            
-            string matName = trimmed.Substring(lastSlash + 1, closeBracket - lastSlash - 1);
+            string matName = ExtractBindingName(trimmed);
+            if (string.IsNullOrEmpty(matName) || instance == null) return;
             
             if (subset != null)
             {
@@ -324,22 +598,22 @@ namespace InspyrStudio.CygonLink
         /// <param name="ctx">The import context (used to load and depend on the .mat assets).</param>
         private void ApplyMaterialsToInstances(AssetImportContext ctx)
         {
-            foreach (KeyValuePair<GameObject, string> kv in _instanceMeshPath)
+            int multiMaterial = 0;
+            
+            foreach (KeyValuePair<GameObject, Mesh> kv in _instanceMesh)
             {
                 GameObject inst = kv.Key;
-                string meshPath = kv.Value;
+                Mesh mesh = kv.Value;
                 if (inst == null) continue;
                 
                 MeshRenderer renderer = inst.GetComponent<MeshRenderer>();
                 if (renderer == null) renderer = inst.AddComponent<MeshRenderer>();
                 
-                int subMeshCount = 1;
-                if (_meshCache.TryGetValue(meshPath, out Mesh mesh) && mesh != null)
-                    subMeshCount = Mathf.Max(1, mesh.subMeshCount);
+                int subMeshCount = mesh != null ? Mathf.Max(1, mesh.subMeshCount) : 1;
                 
-                _meshSubsets.TryGetValue(meshPath, out List<string> subsetNames);
+                _instanceSubsets.TryGetValue(inst, out List<string> subsetNames);
                 _subsetBindings.TryGetValue(inst, out Dictionary<string, string> subBinds);
-                _singleBindings.TryGetValue(inst, out string singleMat);
+                string singleMat = ResolveSingleBinding(inst);
                 
                 Material[] mats = new Material[subMeshCount];
                 bool hasSubsets = subsetNames != null && subsetNames.Count > 0;
@@ -357,7 +631,7 @@ namespace InspyrStudio.CygonLink
                         mats[si] = LoadMaterial(matName, ctx);
                     }
                     
-                    EditorRuntime_USDA.SendLog("green", $"'{inst.name}': {subMeshCount} materials assigned.");
+                    multiMaterial++;
                 }
                 else
                 {
@@ -367,6 +641,25 @@ namespace InspyrStudio.CygonLink
                 
                 renderer.sharedMaterials = mats;
             }
+            
+            EditorRuntime_USDA.SendLog("green", $"{_instanceMesh.Count} meshes bound ({multiMaterial} with per-face materials).");
+        }
+
+        /// <summary>
+        /// Finds the material bound to an instance, walking up its ancestors when it binds none itself.
+        /// A USD prim binds a material for its whole subtree, which the library export relies on: the
+        /// binding sits on the prim whose child carries the referenced mesh
+        /// </summary>
+        /// <param name="instance">The GameObject carrying the mesh</param>
+        /// <returns>The bound material's name, or null when neither it nor an ancestor binds one</returns>
+        private string ResolveSingleBinding(GameObject instance)
+        {
+            for (Transform t = instance.transform; t != null; t = t.parent)
+            {
+                if (_singleBindings.TryGetValue(t.gameObject, out string matName)) return matName;
+            }
+            
+            return null;
         }
 
         /// <summary>Loads a generated material by name from the sibling "materials" folder.</summary>
@@ -411,7 +704,7 @@ namespace InspyrStudio.CygonLink
             return flipZ ? Vector3.zero : Vector3.one;
         }
 
-        /// <summary>Parses a rotation <c>(x, y, z)</c> tuple, negating Y/Z to convert to Unity's convention.</summary>
+        /// <summary>Parses a rotation <c>(x, y, z)</c> tuple and converts it to Unity's handedness.</summary>
         /// <param name="line">The line containing a <c>(x, y, z)</c> rotation tuple.</param>
         /// <returns>The Euler angles in Unity's convention, or zero when no tuple is found.</returns>
         private Vector3 ParseRotationFromLine(string line)
@@ -423,7 +716,8 @@ namespace InspyrStudio.CygonLink
                 float x = float.Parse(p[0].Trim(), CultureInfo.InvariantCulture);
                 float y = float.Parse(p[1].Trim(), CultureInfo.InvariantCulture);
                 float z = float.Parse(p[2].Trim(), CultureInfo.InvariantCulture);
-                return new Vector3(x, -y, -z);
+                
+                return new Vector3(-x, -y, z);
             }
             return Vector3.zero;
         }
@@ -515,6 +809,75 @@ namespace InspyrStudio.CygonLink
         }
 
         /// <summary>
+        /// Resolves a <c>references</c> line to geometry, whichever form the export uses: an external
+        /// file (<c>@meshes/Wall.usda@</c>) or a prim inside this file's own library
+        /// (<c>&lt;/World/Meshes/Wall&gt;</c>)
+        /// </summary>
+        /// <param name="ctx">The import context (registers the built mesh as a sub-asset)</param>
+        /// <param name="target">The instance GameObject that receives the mesh</param>
+        /// <param name="trimmed">The trimmed <c>references</c> line</param>
+        /// <param name="lines">All lines of the scene USDA, holding the library blocks</param>
+        /// <returns>True when a mesh was resolved and attached</returns>
+        private bool ApplyReference(AssetImportContext ctx, GameObject target, string trimmed, string[] lines)
+        {
+            Match fileRef = Regex.Match(trimmed, @"@([^@]+)@");
+            if (fileRef.Success)
+            {
+                ApplyMeshReference(ctx, target, fileRef.Groups[1].Value);
+                return true;
+            }
+            
+            Match primRef = Regex.Match(trimmed, @"<([^>]+)>");
+            if (primRef.Success) return ApplyLibraryMesh(ctx, target, primRef.Groups[1].Value.Trim(), lines);
+            
+            return false;
+        }
+
+        /// <summary>
+        /// Attaches a mesh held elsewhere in this file, building it on first use and reusing it after:
+        /// a library prim is typically referenced by many instances
+        /// </summary>
+        /// <param name="ctx">The import context (registers the built mesh as a sub-asset)</param>
+        /// <param name="target">The instance GameObject that receives the mesh</param>
+        /// <param name="primPath">Absolute prim path of the referenced prim</param>
+        /// <param name="lines">All lines of the scene USDA, holding the library blocks</param>
+        /// <returns>True when the prim was found and its mesh attached</returns>
+        private bool ApplyLibraryMesh(AssetImportContext ctx, GameObject target, string primPath, string[] lines)
+        {
+            if (!_meshLibrary.TryGetValue(primPath, out (int Start, int End) block))
+            {
+                EditorRuntime_USDA.SendLog("orange", $"'{target.name}': no mesh found at {primPath}.");
+                return false;
+            }
+            
+            if (!_meshCache.TryGetValue(primPath, out Mesh mesh))
+            {
+                string blockText = string.Join("\n", lines, block.Start, block.End - block.Start + 1);
+                
+                mesh = BuildMeshFromUsda(blockText, out List<string> subsetNames);
+                if (mesh == null) return false;
+                
+                ApplyMeshPrimOffset(mesh, lines, block.Start, block.End, target.name);
+                mesh.name = primPath.Substring(primPath.LastIndexOf('/') + 1);
+                ctx.AddObjectToAsset(mesh.name + "_m", mesh);
+                
+                _meshCache[primPath] = mesh;
+                _meshSubsets[primPath] = subsetNames;
+                _librarySubsetBindings[primPath] = ParseSubsetBindings(blockText);
+            }
+            
+            _instanceMesh[target] = mesh;
+            _meshSubsets.TryGetValue(primPath, out List<string> subsets);
+            _instanceSubsets[target] = subsets;
+            
+            if (_librarySubsetBindings.TryGetValue(primPath, out Dictionary<string, string> bindings))
+                ApplySubsetBindings(target, bindings);
+            
+            AttachMesh(target, mesh);
+            return true;
+        }
+
+        /// <summary>
         /// Resolves a referenced mesh file (building + caching it on first use) and wires the mesh,
         /// renderer and collider onto the instance GameObject.
         /// </summary>
@@ -540,18 +903,11 @@ namespace InspyrStudio.CygonLink
             
             if (_meshCache.TryGetValue(fullPath, out Mesh mesh))
             {
-                // Remember which mesh this instance uses so materials can be assigned
-                // once the whole scene (including per-subset bindings) has been parsed.
-                _instanceMeshPath[target] = fullPath;
+                _instanceMesh[target] = mesh;
+                _meshSubsets.TryGetValue(fullPath, out List<string> subsetNames);
+                _instanceSubsets[target] = subsetNames;
                 
-                if (!target.GetComponent<MeshFilter>()) target.AddComponent<MeshFilter>().sharedMesh = mesh;
-                
-                MeshRenderer mr = target.GetComponent<MeshRenderer>();
-                if (mr == null) mr = target.AddComponent<MeshRenderer>();
-                mr.shadowCastingMode = ShadowCastingMode.TwoSided;
-                
-                MeshCollider mc = target.AddComponent<MeshCollider>();
-                mc.sharedMesh = mesh;
+                AttachMesh(target, mesh);
             }
         }
 
